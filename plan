@@ -1,0 +1,354 @@
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Plan to implement                                                                                                           │
+│                                                                                                                             │
+│ Plan: Portfolio Web — Claude Code CLI Simulator                                                                             │
+│                                                                                                                             │
+│ Context                                                                                                                     │
+│                                                                                                                             │
+│ Alfonso quiere un portfolio/CV web que simule la interfaz de Claude Code CLI. La web será 100% interactiva vía teclado, con │
+│  comandos slash que muestran información del CV, y un chatbot IA gratuito para respuestas libres divertidas. El objetivo es │
+│  que parezca que un "modelo" llamado "Data Architect 4.6 Opus" está respondiendo sobre Alfonso.                             │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Tech Stack                                                                                                                  │
+│                                                                                                                             │
+│ ┌────────────────┬────────────────────────────────────────────┬─────────────────────────────────────────────────────────┐   │
+│ │   Componente   │                 Tecnología                 │                      Justificación                      │   │
+│ ├────────────────┼────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤   │
+│ │ Framework      │ Next.js 15 (App Router) + TypeScript       │ SSR para SEO + API routes para proxy IA (sin backend    │   │
+│ │                │                                            │ separado)                                               │   │
+│ ├────────────────┼────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤   │
+│ │ Estilos        │ Tailwind CSS v4                            │ Utilidades + tokens de color custom                     │   │
+│ ├────────────────┼────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤   │
+│ │ Fuente         │ JetBrains Mono (Google Fonts)              │ Soporte perfecto para box-drawing Unicode (╭─╮│╰─╯)     │   │
+│ ├────────────────┼────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤   │
+│ │ IA Chat        │ Google Gemini 2.5 Flash-Lite via           │ Gratis (1000 req/día), streaming nativo con Vercel AI   │   │
+│ │                │ @ai-sdk/google                             │ SDK                                                     │   │
+│ ├────────────────┼────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤   │
+│ │ Deploy         │ Vercel (free tier)                         │ Zero-config para Next.js, Edge Functions para el proxy  │   │
+│ │                │                                            │ IA                                                      │   │
+│ ├────────────────┼────────────────────────────────────────────┼─────────────────────────────────────────────────────────┤   │
+│ │ Package        │ pnpm                                       │ Rápido, strict                                          │   │
+│ │ Manager        │                                            │                                                         │   │
+│ └────────────────┴────────────────────────────────────────────┴─────────────────────────────────────────────────────────┘   │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Estructura del Proyecto                                                                                                     │
+│                                                                                                                             │
+│ claude-resume/                                                                                                              │
+│ ├── resume.json                        # Fuente de datos (ya existe)                                                        │
+│ ├── public/                                                                                                                 │
+│ │   └── alfonso-baena-resume.pdf       # PDF descargable                                                                    │
+│ ├── src/                                                                                                                    │
+│ │   ├── app/                                                                                                                │
+│ │   │   ├── layout.tsx                 # Root: font, metadata, fondo negro                                                  │
+│ │   │   ├── page.tsx                   # Renderiza <Terminal />                                                             │
+│ │   │   ├── globals.css                # Tailwind + CSS vars de colores                                                     │
+│ │   │   └── api/chat/route.ts          # Proxy IA: POST → Gemini streaming                                                  │
+│ │   ├── components/                                                                                                         │
+│ │   │   ├── Terminal.tsx               # Orquestador principal (estado, historial, input)                                   │
+│ │   │   ├── WelcomeScreen.tsx          # Pantalla de bienvenida dos paneles (la estrella)                                   │
+│ │   │   ├── InputBox.tsx               # Input bordeado con ╭─╮│╰─╯ y cursor                                                │
+│ │   │   ├── Spinner.tsx                # Spinner animado con verbos                                                         │
+│ │   │   ├── SlashMenu.tsx              # Dropdown autocompletado de comandos                                                │
+│ │   │   ├── StreamingText.tsx          # Renderizado carácter a carácter del IA                                             │
+│ │   │   └── commands/                  # Un componente por comando                                                          │
+│ │   │       ├── HelpOutput.tsx                                                                                              │
+│ │   │       ├── AboutOutput.tsx                                                                                             │
+│ │   │       ├── ExperienceOutput.tsx                                                                                        │
+│ │   │       ├── SkillsOutput.tsx                                                                                            │
+│ │   │       ├── EducationOutput.tsx                                                                                         │
+│ │   │       ├── CertsOutput.tsx                                                                                             │
+│ │   │       ├── ContactOutput.tsx                                                                                           │
+│ │   │       ├── ModelsOutput.tsx                                                                                            │
+│ │   │       ├── LanguagesOutput.tsx                                                                                         │
+│ │   │       ├── StatusOutput.tsx                                                                                            │
+│ │   │       ├── CostOutput.tsx                                                                                              │
+│ │   │       ├── DoctorOutput.tsx                                                                                            │
+│ │   │       └── DownloadOutput.tsx                                                                                          │
+│ │   ├── hooks/                                                                                                              │
+│ │   │   ├── useCommandHistory.ts       # Flechas arriba/abajo + localStorage                                                │
+│ │   │   ├── useAutoComplete.ts         # Tab completion                                                                     │
+│ │   │   ├── useTerminalScroll.ts       # Auto-scroll al fondo                                                               │
+│ │   │   └── useAIChat.ts              # Wrapper de useChat (Vercel AI SDK)                                                  │
+│ │   ├── lib/                                                                                                                │
+│ │   │   ├── commands.ts                # Registry de comandos: definición + routing                                         │
+│ │   │   ├── resume-data.ts             # Import tipado de resume.json                                                       │
+│ │   │   ├── colors.ts                  # Tokens de color Claude Code                                                        │
+│ │   │   ├── system-prompt.ts           # System prompt para Gemini                                                          │
+│ │   │   └── types.ts                   # Interfaces TypeScript                                                              │
+│ │   └── config/                                                                                                             │
+│ │       └── site.ts                    # Metadata, versión, constantes                                                      │
+│ ├── tailwind.config.ts                                                                                                      │
+│ ├── next.config.ts                                                                                                          │
+│ ├── tsconfig.json                                                                                                           │
+│ └── package.json                                                                                                            │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Pantalla de Bienvenida                                                                                                      │
+│                                                                                                                             │
+│ Replica exacta del layout de Claude Code pero personalizada:                                                                │
+│                                                                                                                             │
+│ ╭─── Alfonso Resume v1.0.0 ──────────────────────────────────────────────────────────────────────────────╮                  │
+│ │                                                    │ Tips for getting started                           │                 │
+│ │              Welcome, stranger!                    │                                                    │                 │
+│ │                                                    │  /help       List all available commands            │                │
+│ │                                                    │  /experience Browse my work history                 │                │
+│ │                       ▐▛███▜▌                      │  /skills     See my technical toolkit              │                 │
+│ │                      ▝▜█████▛▘                     │  /certs      View my 11 certifications             │                 │
+│ │                        ▘▘ ▝▝                       │  Or just type anything to chat with my AI clone!   │                 │
+│ │                                                    │ ─────────────────────────────────────────────────── │                │
+│ │ Data Architect 4.6 · Resume Pro ·                  │ Recent certifications                               │                │
+│ │ alfonsombaena@gmail.com's Portfolio                │   AWS Certified Data Engineer – Associate           │                │
+│ │          ~/career/data-architecture                │   HashiCorp Terraform Associate (003)               │                │
+│ ╰─────────────────────────────────────────────────────────────────────────────────────────────────────────╯                 │
+│                                                                                                                             │
+│ Mapeo de cambios vs Claude Code real:                                                                                       │
+│                                                                                                                             │
+│ ┌──────────────────────────────────┬─────────────────────────────────────┐                                                  │
+│ │           Claude Code            │              Portfolio              │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ Claude Code v2.1.63              │ Alfonso Resume v1.0.0               │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ Welcome back Alfonso!            │ Welcome, stranger!                  │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ Opus 4.6 · Claude Pro            │ Data Architect 4.6 · Resume Pro     │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ alfonsombaena's Organization     │ alfonsombaena@gmail.com's Portfolio │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ ~/workspace/github/claude-resume │ ~/career/data-architecture          │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ Run /init to create a CLAUDE.md  │ Tips con los comandos principales   │                                                  │
+│ ├──────────────────────────────────┼─────────────────────────────────────┤                                                  │
+│ │ No recent activity               │ Últimas certificaciones             │                                                  │
+│ └──────────────────────────────────┴─────────────────────────────────────┘                                                  │
+│                                                                                                                             │
+│ Implementación: Renderizado como <pre> con segmentos coloreados ({ text, color }[] por línea). El mascota Clawd se          │
+│ renderiza en color brand #D77757. Función buildWelcomeBox(width) que genera las líneas dinámicamente según el ancho. En     │
+│ móvil (<768px): layout apilado de un solo panel.                                                                            │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Tokens de Color (replicando Claude Code)                                                                                    │
+│                                                                                                                             │
+│ const colors = {                                                                                                            │
+│   brand:        '#D77757',  // Burnt orange — bordes, mascota, prompt                                                       │
+│   success:      '#4EBA65',  // Verde — nombres de comandos, éxito                                                           │
+│   permission:   '#5769F7',  // Azul — links, elementos interactivos                                                         │
+│   bashBorder:   '#FD5DB1',  // Rosa — borde respuestas IA                                                                   │
+│   promptBorder: '#888888',  // Gris — borde input (sin foco)                                                                │
+│   subtle:       '#AFAFAF',  // Gris claro — descripciones                                                                   │
+│   inactive:     '#666666',  // Gris oscuro — timestamps                                                                     │
+│   bg:           '#1A1A2E',  // Fondo oscuro                                                                                 │
+│   text:         '#E8E8E8',  // Texto principal                                                                              │
+│   error:        '#FF6B6B',  // Rojo — errores                                                                               │
+│ }                                                                                                                           │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Mapeo de Comandos                                                                                                           │
+│                                                                                                                             │
+│ Comandos de Contenido (CV)                                                                                                  │
+│                                                                                                                             │
+│ ┌─────────────┬─────────────────┬────────────────────────────────────────────────────────────────────────────────────────┐  │
+│ │   Comando   │     Aliases     │                                      Qué muestra                                       │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /help       │ /h, /?          │ Tabla de todos los comandos agrupados por categoría                                    │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /about      │ /summary,       │ basics.summary del resume.json en un box bordeado + rol actual + ubicación             │  │
+│ │             │ /whoami         │                                                                                        │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /experience │ /work, /exp     │ Timeline estilo git log: empresa (verde), puesto (bold), fechas (gris), highlights     │  │
+│ │             │                 │ indentados. Más reciente primero                                                       │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │             │                 │ Skills agrupadas en categorías: Languages (Python, SQL, Bash), Cloud & Infra (AWS,     │  │
+│ │ /skills     │ /tech, /stack   │ Terraform, k8s), Data (Spark, Airflow, dbt), Practices (GitOps, Leadership,            │  │
+│ │             │                 │ Mentorship)                                                                            │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /education  │ /edu            │ Formato árbol con ├── y └──: UMA + Cambridge                                           │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /certs      │ /certifications │ Las 11 certs con badges de issuer. AWS agrupadas (6x). Links clickables a Credly       │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /contact    │ /links,         │ Email, LinkedIn, GitHub como links clickables. Estilo cat ~/.contact                   │  │
+│ │             │ /socials        │                                                                                        │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │             │                 │ "Modelos" = roles de carrera como selector de Claude Code: Data Architect 4.6 (actual, │  │
+│ │ /models     │ /roles          │  destacado con punto verde), Senior Data Engineer 3.0, Data Engineer 2.0, RF Engineer  │  │
+│ │             │                 │ 1.0                                                                                    │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /languages  │ /lang           │ Barras de progreso Unicode: Spanish ████████████ Native, English █████████░░ Advanced  │  │
+│ ├─────────────┼─────────────────┼────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ /download   │ /pdf, /resume   │ Descarga PDF. Animación "downloading..." → "Resume downloaded successfully." en verde  │  │
+│ └─────────────┴─────────────────┴────────────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                                                             │
+│ Comandos Sistema/Fun (mapeos creativos)                                                                                     │
+│                                                                                                                             │
+│ ┌──────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │ Comando  │                                                   Qué hace                                                   │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /clear   │ Limpia terminal, re-muestra welcome screen                                                                   │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /status  │ Readout de stats: 7+ años experiencia, 11 certs, 6 AWS, 4 empresas, "Open to interesting opportunities"      │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /cost    │ "Análisis de costes" humorístico: ~4380 cafés consumidos, horas debugging: incalculable, facturas AWS        │ │
+│ │          │ debuggeadas: demasiadas, ROI: no tiene precio                                                                │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /doctor  │ Diagnóstico animado con checks secuenciales: "Checking Python skills... OK", "Checking AWS certs... 6/6      │ │
+│ │          │ PASSED", "Checking coffee levels... LOW"                                                                     │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /init    │ "Creating ALFONSO.md... Done! Portfolio initialized. Type /help to explore."                                 │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /version │ "Alfonso Resume v1.0.0 — Built with Next.js, TypeScript, and too much coffee"                                │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /theme   │ Toggle dark/light theme. Guarda preferencia en localStorage                                                  │ │
+│ ├──────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ /compact │ Toggle modo compacto (muestra versiones reducidas de los outputs)                                            │ │
+│ └──────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                                                             │
+│ Command Not Found                                                                                                           │
+│                                                                                                                             │
+│ Fuzzy matching con sugerencias: command not found: /foo — Did you mean /about?                                              │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Chatbot IA (texto libre sin /)                                                                                              │
+│                                                                                                                             │
+│ Arquitectura                                                                                                                │
+│                                                                                                                             │
+│ Browser (useChat de @ai-sdk/react)                                                                                          │
+│   → POST /api/chat { messages }                                                                                             │
+│     → Next.js Edge API Route                                                                                                │
+│       → streamText({ model: google('gemini-2.5-flash-lite'), system: SYSTEM_PROMPT })                                       │
+│         → Gemini API (free tier: 1000 req/día, 15 RPM)                                                                      │
+│           → SSE stream de vuelta al browser                                                                                 │
+│                                                                                                                             │
+│ System Prompt (resumen)                                                                                                     │
+│                                                                                                                             │
+│ El asistente IA habla como un clon divertido de Alfonso:                                                                    │
+│ - Habla en primera persona sobre logros de Alfonso                                                                          │
+│ - Humor self-deprecating + puns de data engineering + chistes CLI                                                           │
+│ - Respuestas CORTAS (2-4 frases) — esto es una terminal, no un blog                                                         │
+│ - Si le preguntan algo no relacionado, responde brevemente pero redirige a Alfonso                                          │
+│ - Sugiere comandos slash: "Prueba /experience para la historia completa"                                                    │
+│ - Si no sabe algo, lo dice con humor                                                                                        │
+│ - Easter eggs:                                                                                                              │
+│   - sudo hire alfonso → "Permission granted. Sending offer letter... Just kidding, but seriously, check /contact!"          │
+│   - Preguntas de salario → "Error 402: Payment Required. But I promise the ROI is excellent"                                │
+│                                                                                                                             │
+│ Spinner                                                                                                                     │
+│                                                                                                                             │
+│ Mientras el IA "piensa", spinner con verbos temáticos rotando: "Querying...", "Pipelining...", "Transforming...",           │
+│ "Orchestrating...", "Architecting...", "Debugging...", "Optimizing..." con los caracteres de animación de Claude Code: ·,   │
+│ ✢, ✳, ✶, ✻, ✽                                                                                                               │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ UX e Interacción                                                                                                            │
+│                                                                                                                             │
+│ InputBox                                                                                                                    │
+│                                                                                                                             │
+│ - Borde Unicode ╭─╮│╰─╯ en gris (#888), en brand (#D77757) cuando tiene foco                                                │
+│ - Carácter > siempre visible en color brand                                                                                 │
+│ - Cursor bloque parpadeante █ via CSS animation                                                                             │
+│ - Input HTML oculto + <pre> overlay para colorear el texto mientras se escribe                                              │
+│                                                                                                                             │
+│ Keyboard                                                                                                                    │
+│                                                                                                                             │
+│ - Tab: autocompletado de comandos                                                                                           │
+│ - Up/Down: navegar historial de comandos (persiste en localStorage, hasta 50)                                               │
+│ - Ctrl+L: limpiar terminal                                                                                                  │
+│ - Ctrl+C: cancelar generación IA                                                                                            │
+│ - Enter: ejecutar comando o enviar mensaje al IA                                                                            │
+│ - Escape: cerrar slash menu                                                                                                 │
+│                                                                                                                             │
+│ SlashMenu                                                                                                                   │
+│                                                                                                                             │
+│ Dropdown que aparece al escribir /:                                                                                         │
+│ ╭─────────────────────────────────╮                                                                                         │
+│ │ /skills     Technical skills    │  ← highlighted                                                                          │
+│ │ /status     Portfolio status    │                                                                                         │
+│ │ /summary    About Alfonso       │                                                                                         │
+│ ╰─────────────────────────────────╯                                                                                         │
+│ Filtrado en tiempo real. Arrow keys para navegar, Enter para seleccionar.                                                   │
+│                                                                                                                             │
+│ Auto-scroll                                                                                                                 │
+│                                                                                                                             │
+│ Scroll automático al fondo en cada nuevo output/chunk del IA. Respeta scroll manual del usuario (no fuerza si ha scrolleado │
+│  hacia arriba).                                                                                                             │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Responsive                                                                                                                  │
+│                                                                                                                             │
+│ ┌────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│ │     Breakpoint     │                                          Comportamiento                                           │  │
+│ ├────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ Desktop (>=1024px) │ Layout completo dos paneles, max-width 1100px                                                     │  │
+│ ├────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ Tablet             │ Dos paneles con menos padding, font 13px                                                          │  │
+│ │ (768-1023px)       │                                                                                                   │  │
+│ ├────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────┤  │
+│ │ Mobile (<768px)    │ Welcome screen apilada (un panel), slash menu como bottom sheet full-width, botón Send visible,   │  │
+│ │                    │ font 12px                                                                                         │  │
+│ └────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────┘  │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Fases de Implementación                                                                                                     │
+│                                                                                                                             │
+│ Fase 1: Scaffold del Proyecto                                                                                               │
+│                                                                                                                             │
+│ 1. Init Next.js 15 + TypeScript + Tailwind + pnpm                                                                           │
+│ 2. Configurar colores custom en Tailwind                                                                                    │
+│ 3. JetBrains Mono via next/font/google                                                                                      │
+│ 4. Layout base (fondo oscuro, viewport completo)                                                                            │
+│ 5. Importar y tipar resume.json en lib/resume-data.ts                                                                       │
+│ 6. Crear lib/colors.ts y lib/types.ts                                                                                       │
+│                                                                                                                             │
+│ Fase 2: Welcome Screen                                                                                                      │
+│                                                                                                                             │
+│ 1. WelcomeScreen.tsx con layout dos paneles en box-drawing                                                                  │
+│ 2. Función buildWelcomeBox(width) para generación dinámica                                                                  │
+│ 3. Mascota Clawd con colores brand                                                                                          │
+│ 4. Layout responsive (apilado en móvil)                                                                                     │
+│                                                                                                                             │
+│ Fase 3: Sistema de Input                                                                                                    │
+│                                                                                                                             │
+│ 1. InputBox.tsx con borde, prompt >, cursor                                                                                 │
+│ 2. useCommandHistory.ts (Up/Down, localStorage)                                                                             │
+│ 3. useAutoComplete.ts (Tab)                                                                                                 │
+│ 4. SlashMenu.tsx dropdown                                                                                                   │
+│ 5. Terminal.tsx orquestador                                                                                                 │
+│ 6. useTerminalScroll.ts                                                                                                     │
+│                                                                                                                             │
+│ Fase 4: Sistema de Comandos                                                                                                 │
+│                                                                                                                             │
+│ 1. lib/commands.ts — registry con definiciones y routing                                                                    │
+│ 2. Implementar cada componente de output (Help, About, Experience, Skills, Education, Certs, Contact, Models, Languages,    │
+│ Download)                                                                                                                   │
+│ 3. Comandos fun (Status, Cost, Doctor con animaciones, Init, Version, Theme, Compact)                                       │
+│ 4. Fuzzy matching para "command not found"                                                                                  │
+│                                                                                                                             │
+│ Fase 5: Chatbot IA                                                                                                          │
+│                                                                                                                             │
+│ 1. api/chat/route.ts — Edge API route con Gemini                                                                            │
+│ 2. lib/system-prompt.ts — prompt completo con personalidad                                                                  │
+│ 3. useAIChat.ts — wrapper de useChat                                                                                        │
+│ 4. Spinner.tsx con verbos temáticos                                                                                         │
+│ 5. StreamingText.tsx para respuestas streameadas                                                                            │
+│ 6. Manejo de rate limiting (mensaje amigable si 429)                                                                        │
+│                                                                                                                             │
+│ Fase 6: Polish y Deploy                                                                                                     │
+│                                                                                                                             │
+│ 1. Atajos de teclado (Ctrl+L, Ctrl+C)                                                                                       │
+│ 2. Easter eggs                                                                                                              │
+│ 3. SEO metadata + Open Graph                                                                                                │
+│ 4. Deploy a Vercel                                                                                                          │
+│ 5. Testing cross-browser y móvil                                                                                            │
+│                                                                                                                             │
+│ ---                                                                                                                         │
+│ Verificación                                                                                                                │
+│                                                                                                                             │
+│ 1. pnpm dev → la web carga con la welcome screen idéntica a Claude Code                                                     │
+│ 2. Escribir /help → muestra todos los comandos disponibles                                                                  │
+│ 3. Probar cada comando slash y verificar que muestra datos del resume.json                                                  │
+│ 4. Escribir texto libre → spinner aparece → respuesta streameada del IA con personalidad divertida                          │
+│ 5. Tab completion funciona al escribir /sk → autocompleta a /skills                                                         │
+│ 6. Up/Down arrows navegan historial de comandos                                                                             │
+│ 7. Mobile: layout apilado, slash menu como bottom sheet, botón Send visible                                                 │
+│ 8. pnpm build sin errores → deploy a Vercel funciona                                                                        │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.gradually.ai)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:shipyard.build)",
+      "WebFetch(domain:smartscope.blog)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:claudelog.com)",
+      "WebFetch(domain:alexop.dev)",
+      "WebFetch(domain:www.starkinsider.com)",
+      "WebFetch(domain:www.siddharthbharath.com)",
+      "WebFetch(domain:www.builder.io)",
+      "WebFetch(domain:neon.com)",
+      "WebFetch(domain:leehanchung.github.io)",
+      "WebFetch(domain:institute.sfeir.com)",
+      "WebFetch(domain:ai.google.dev)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm build:*)",
+      "Bash(curl:*)"
+    ]
+  },
+  "autoApprove": true
+}
