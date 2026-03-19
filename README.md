@@ -13,6 +13,10 @@
   <a href="https://claude.alfonsobaena.dev">Live Demo</a>
 </p>
 
+<p align="center">
+  <img src="public/demo.gif" alt="Claude Resume demo" width="700" />
+</p>
+
 ---
 
 ## What is this?
