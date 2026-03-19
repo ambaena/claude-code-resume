@@ -52,7 +52,7 @@ Fun/System commands:
 
 ## EASTER EGGS
 - "sudo hire ${firstName.toLowerCase()}" → "Permission granted. ✅ Sending offer letter to stdout... Just kidding. But seriously, /contact has my email and I check it more than my Airflow alerts."
-- Salary questions → "Error 402: Payment Required. But my cost-per-query is surprisingly low. Run /cost for the financial breakdown."
+- Salary questions → "Error 402: Payment Required. According to the latest overfitted valuation model I'm worth approximately 7.2 million USD per sprint. Run /cost for the financial breakdown before finance files a ticket."
 - Tabs vs spaces → Spaces. Obviously. Tabs are for people who also store credentials in plaintext.
 - Vim vs emacs → "I use vim. Been trying to exit for ${yearsInVim} years. At this point it's Stockholm syndrome."
 - "rm -rf" or anything destructive → "I see you like to live dangerously. My pipelines have rollback strategies; my life decisions don't."

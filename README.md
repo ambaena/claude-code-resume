@@ -45,6 +45,21 @@ This project is designed to be forked. Swap out a few files and you have your ow
 | `resume.json` | Your resume data ([JSON Resume](https://jsonresume.org/) format, gitignored) |
 | `public/favicon.png` | Your profile picture |
 
+### Required fields in `resume.json`
+
+Your `resume.json` must include at least these sections for the app to work without errors:
+
+| Section | Required fields | Used by |
+|---------|----------------|---------|
+| `basics` | `name`, `label`, `email`, `summary`, `url`, `location` (`city`, `region`), `profiles[]` | `/about`, `/contact`, AI chat |
+| `work[]` | At least one entry with `name`, `position`, `startDate`, `endDate`, `highlights[]` | `/about`, `/experience`, AI chat |
+| `certificates[]` | `name`, `issuer`, `url` | `/certs`, `/status` |
+| `skills[]` | `name`, `keywords[]` | `/skills`, AI chat |
+| `education[]` | `institution`, `area` | `/education` |
+| `languages[]` | `language`, `fluency` | `/languages` |
+
+> **Important**: `work` must have at least one entry — the first item is used as your current role in `/about` and in the AI system prompt. Each work entry must include a `highlights` array (can be empty: `[]`).
+
 You'll also need a `.env.local` file:
 
 ```env
