@@ -5,28 +5,30 @@ import { WelcomeScreen } from './WelcomeScreen';
 import { InputBox } from './InputBox';
 import { SlashMenu } from './SlashMenu';
 import { Spinner } from './Spinner';
-import { StreamingText } from './StreamingText';
+import { MarkdownOutput } from './MarkdownOutput';
 import { useCommandHistory } from '@/hooks/useCommandHistory';
 import { useAutoComplete } from '@/hooks/useAutoComplete';
 import { useTerminalScroll } from '@/hooks/useTerminalScroll';
 import { findCommand, fuzzyMatch, filterCommands } from '@/lib/commands';
 import { colors } from '@/lib/colors';
-import { siteConfig } from '@/config/site';
 
 // Command outputs
-import { HelpOutput } from './commands/HelpOutput';
-import { AboutOutput } from './commands/AboutOutput';
-import { ExperienceOutput } from './commands/ExperienceOutput';
-import { SkillsOutput } from './commands/SkillsOutput';
-import { EducationOutput } from './commands/EducationOutput';
-import { CertsOutput } from './commands/CertsOutput';
-import { ContactOutput } from './commands/ContactOutput';
-import { ModelsOutput } from './commands/ModelsOutput';
-import { LanguagesOutput } from './commands/LanguagesOutput';
-import { StatusOutput } from './commands/StatusOutput';
-import { CostOutput } from './commands/CostOutput';
-import { DoctorOutput } from './commands/DoctorOutput';
-import { DownloadOutput } from './commands/DownloadOutput';
+import { Help, helpCommands } from './commands/Help';
+import { About } from './commands/About';
+import { Experience } from './commands/Experience';
+import { Skills } from './commands/Skills';
+import { Education } from './commands/Education';
+import { Certs } from './commands/Certs';
+import { Contact } from './commands/Contact';
+import { Models, careerModels } from './commands/Models';
+import { Languages } from './commands/Languages';
+import { Status } from './commands/Status';
+import { Cost } from './commands/Cost';
+import { Doctor } from './commands/Doctor';
+import { Download } from './commands/Download';
+import { Usage } from './commands/Usage';
+import { Init } from './commands/Init';
+import { Version } from './commands/Version';
 
 interface HistoryEntry {
   id: string;
@@ -46,29 +48,91 @@ export function Terminal() {
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [menuIndex, setMenuIndex] = useState(0);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [compact, setCompact] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+
+  // Model selector state
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [modelSelectorIndex, setModelSelectorIndex] = useState(0);
+  const [currentModelIndex, setCurrentModelIndex] = useState(0);
+
+  // Help selector state
+  const [helpSelectorOpen, setHelpSelectorOpen] = useState(false);
+  const [helpSelectorIndex, setHelpSelectorIndex] = useState(0);
 
   const cmdHistory = useCommandHistory();
   const { complete } = useAutoComplete();
   const { containerRef, scrollToBottom } = useTerminalScroll();
   const abortRef = useRef<AbortController | null>(null);
+  const chatMessagesRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [pendingHelpCommand, setPendingHelpCommand] = useState<string | null>(null);
 
   // Auto-scroll on history changes
   useEffect(() => {
     scrollToBottom();
   }, [history, scrollToBottom]);
 
-  // Focus input on click anywhere
+  // Auto-scroll when slash menu or help selector opens or selection changes
   useEffect(() => {
-    const handler = () => setFocused(true);
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
-  }, []);
+    if (showSlashMenu || helpSelectorOpen) {
+      scrollToBottom();
+    }
+  }, [showSlashMenu, menuIndex, helpSelectorOpen, helpSelectorIndex, scrollToBottom]);
 
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Model selector keyboard handling
+      if (modelSelectorOpen) {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setModelSelectorIndex((i) => Math.max(0, i - 1));
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setModelSelectorIndex((i) => Math.min(careerModels.length - 1, i + 1));
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          setCurrentModelIndex(modelSelectorIndex);
+          setModelSelectorOpen(false);
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setModelSelectorOpen(false);
+          return;
+        }
+        return;
+      }
+
+      // Help selector keyboard handling
+      if (helpSelectorOpen) {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          setHelpSelectorIndex((i) => Math.max(0, i - 1));
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          setHelpSelectorIndex((i) => Math.min(helpCommands.length - 1, i + 1));
+          return;
+        }
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const cmd = helpCommands[helpSelectorIndex];
+          setHelpSelectorOpen(false);
+          if (cmd) setPendingHelpCommand(cmd.name);
+          return;
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setHelpSelectorOpen(false);
+          return;
+        }
+        return;
+      }
+
       if (e.ctrlKey && e.key === 'l') {
         e.preventDefault();
         handleClear();
@@ -84,7 +148,7 @@ export function Terminal() {
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, []);
+  }, [modelSelectorOpen, modelSelectorIndex, helpSelectorOpen, helpSelectorIndex]);
 
   const addEntry = useCallback((entry: Omit<HistoryEntry, 'id'>) => {
     setHistory((prev) => [...prev, { ...entry, id: crypto.randomUUID() }]);
@@ -92,50 +156,48 @@ export function Terminal() {
 
   const handleClear = useCallback(() => {
     setHistory([{ id: 'welcome', type: 'welcome' }]);
+    chatMessagesRef.current = [];
   }, []);
 
   const renderCommandOutput = useCallback((commandName: string): ReactNode | null => {
     switch (commandName) {
-      case '/help': return <HelpOutput compact={compact} />;
-      case '/about': return <AboutOutput />;
-      case '/experience': return <ExperienceOutput compact={compact} />;
-      case '/skills': return <SkillsOutput />;
-      case '/education': return <EducationOutput />;
-      case '/certs': return <CertsOutput compact={compact} />;
-      case '/contact': return <ContactOutput />;
-      case '/models': return <ModelsOutput />;
-      case '/languages': return <LanguagesOutput />;
-      case '/status': return <StatusOutput />;
-      case '/cost': return <CostOutput />;
-      case '/doctor': return <DoctorOutput />;
-      case '/download': return <DownloadOutput />;
+      case '/help': return null; // handled separately — opens interactive selector
+      case '/about': return <About />;
+      case '/experience': return <Experience />;
+      case '/skills': return <Skills />;
+      case '/education': return <Education />;
+      case '/certs': return <Certs />;
+      case '/contact': return <Contact />;
+      case '/model':
+      case '/models':
+        return null; // handled separately — opens interactive selector
+      case '/languages': return <Languages />;
+      case '/status': return <Status />;
+      case '/cost': return <Cost />;
+      case '/doctor': return <Doctor />;
+      case '/resume': return <Download />;
+      case '/usage': return <Usage />;
       case '/version':
-        return (
-          <div className="text-xs sm:text-sm py-1" style={{ color: colors.subtle }}>
-            {siteConfig.name} v{siteConfig.version} — Built with Next.js, TypeScript, and too much coffee
-          </div>
-        );
+        return <Version />;
       case '/init':
-        return (
-          <div className="text-xs sm:text-sm py-1">
-            <div style={{ color: colors.subtle }}>Creating ALFONSO.md...</div>
-            <div style={{ color: colors.success }}>Done! Portfolio initialized. Type /help to explore.</div>
-          </div>
-        );
-      case '/theme':
-        return null; // handled separately
-      case '/compact':
-        return null; // handled separately
+        return <Init />;
       case '/clear':
         return null; // handled separately
       default:
         return null;
     }
-  }, [compact]);
+  }, []);
 
   const handleAIChat = useCallback(async (message: string) => {
     const entryId = crypto.randomUUID();
     setIsAiLoading(true);
+
+    // Add user message to conversation history
+    chatMessagesRef.current.push({ role: 'user', content: message });
+    // Keep last 20 messages to limit token cost
+    if (chatMessagesRef.current.length > 20) {
+      chatMessagesRef.current = chatMessagesRef.current.slice(-20);
+    }
 
     setHistory((prev) => [
       ...prev,
@@ -150,7 +212,7 @@ export function Terminal() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: message }],
+          messages: [...chatMessagesRef.current],
         }),
         signal: controller.signal,
       });
@@ -180,16 +242,13 @@ export function Terminal() {
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          // Parse SSE format
           const lines = chunk.split('\n');
           for (const line of lines) {
             if (line.startsWith('0:')) {
-              // Vercel AI SDK text stream format
               try {
                 const text = JSON.parse(line.slice(2));
                 accumulated += text;
               } catch {
-                // Try raw text
                 accumulated += line.slice(2);
               }
             }
@@ -208,6 +267,9 @@ export function Terminal() {
           e.id === entryId ? { ...e, isStreaming: false } : e,
         ),
       );
+
+      // Add assistant response to conversation history
+      chatMessagesRef.current.push({ role: 'assistant', content: accumulated });
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') {
         setHistory((prev) =>
@@ -230,8 +292,8 @@ export function Terminal() {
     }
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    const trimmed = input.trim();
+  const handleSubmit = useCallback((overrideInput?: string) => {
+    const trimmed = (overrideInput ?? input).trim();
     if (!trimmed) return;
 
     setShowSlashMenu(false);
@@ -248,31 +310,24 @@ export function Terminal() {
           setInput('');
           return;
         }
-        if (cmd.name === '/theme') {
-          setIsDark((d) => !d);
+
+        if (cmd.name === '/help') {
           addEntry({
             type: 'command',
             input: trimmed,
-            output: (
-              <div className="text-xs sm:text-sm py-1" style={{ color: colors.success }}>
-                Theme toggled. {isDark ? 'Light' : 'Dark'} mode activated.
-              </div>
-            ),
           });
+          setHelpSelectorIndex(0);
+          setHelpSelectorOpen(true);
           setInput('');
           return;
         }
-        if (cmd.name === '/compact') {
-          setCompact((c) => !c);
+        if (cmd.name === '/model') {
           addEntry({
             type: 'command',
             input: trimmed,
-            output: (
-              <div className="text-xs sm:text-sm py-1" style={{ color: colors.success }}>
-                Compact mode {compact ? 'disabled' : 'enabled'}.
-              </div>
-            ),
           });
+          setModelSelectorIndex(currentModelIndex);
+          setModelSelectorOpen(true);
           setInput('');
           return;
         }
@@ -308,7 +363,7 @@ export function Terminal() {
           type: 'command',
           input: trimmed,
           output: (
-            <StreamingText content="Permission granted. Sending offer letter... Just kidding, but seriously, check /contact!" />
+            <MarkdownOutput content="Permission granted. Sending offer letter... Just kidding, but seriously, check /contact!" />
           ),
         });
         setInput('');
@@ -320,7 +375,16 @@ export function Terminal() {
     }
 
     setInput('');
-  }, [input, cmdHistory, handleClear, addEntry, renderCommandOutput, handleAIChat, compact, isDark]);
+  }, [input, cmdHistory, handleClear, addEntry, renderCommandOutput, handleAIChat, currentModelIndex]);
+
+  // Process pending command from help selector
+  useEffect(() => {
+    if (pendingHelpCommand) {
+      const cmd = pendingHelpCommand;
+      setPendingHelpCommand(null);
+      handleSubmit(cmd);
+    }
+  }, [pendingHelpCommand, handleSubmit]);
 
   const handleInputChange = useCallback((value: string) => {
     setInput(value);
@@ -339,6 +403,22 @@ export function Terminal() {
   }, [cmdHistory]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    // When model selector is open, ignore all input key handling
+    // (arrows, Enter, Esc are handled by the global keydown listener)
+    if (modelSelectorOpen || helpSelectorOpen) {
+      e.preventDefault();
+      return;
+    }
+
+    // ? shortcut to open help panel (only when input is empty)
+    if (e.key === '?' && input === '') {
+      e.preventDefault();
+      addEntry({ type: 'command', input: '?' });
+      setHelpSelectorIndex(0);
+      setHelpSelectorOpen(true);
+      return;
+    }
+
     if (e.key === 'Tab') {
       e.preventDefault();
       const completed = complete(input);
@@ -376,8 +456,9 @@ export function Terminal() {
       e.preventDefault();
       const matches = filterCommands(input);
       if (matches[menuIndex]) {
-        setInput(matches[menuIndex].name);
         setShowSlashMenu(false);
+        setInput('');
+        handleSubmit(matches[menuIndex].name);
       }
       return;
     }
@@ -385,17 +466,14 @@ export function Terminal() {
     if (e.key === 'Escape') {
       setShowSlashMenu(false);
     }
-  }, [input, showSlashMenu, menuIndex, cmdHistory, complete]);
-
-  const bgColor = isDark ? colors.bg : '#F5F5F0';
-  const textColor = isDark ? colors.text : '#1A1A2E';
+  }, [input, showSlashMenu, menuIndex, cmdHistory, complete, handleSubmit, modelSelectorOpen, helpSelectorOpen, addEntry]);
 
   return (
     <div
-      className="h-screen flex flex-col overflow-hidden transition-colors duration-300"
-      style={{ backgroundColor: bgColor, color: textColor }}
+      className="h-screen flex flex-col overflow-hidden"
+      style={{ backgroundColor: colors.bg, color: colors.text }}
     >
-      {/* Scrollable output area */}
+      {/* Scrollable content — includes history AND input */}
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto px-2 sm:px-4 py-2 sm:py-4"
@@ -403,7 +481,7 @@ export function Terminal() {
         <div className="max-w-[1100px] mx-auto">
           {history.map((entry) => {
             if (entry.type === 'welcome') {
-              return <WelcomeScreen key={entry.id} />;
+              return <WelcomeScreen key={entry.id} currentModelIndex={currentModelIndex} />;
             }
 
             if (entry.type === 'command') {
@@ -411,7 +489,7 @@ export function Terminal() {
                 <div key={entry.id} className="mb-2">
                   {/* Command echo */}
                   <div className="text-xs sm:text-sm">
-                    <span style={{ color: colors.brand }} className="font-bold">&gt; </span>
+                    <span style={{ color: colors.text }} className="font-bold">❯ </span>
                     <span style={{ color: colors.text }}>{entry.input}</span>
                   </div>
                   {/* Command output */}
@@ -425,14 +503,14 @@ export function Terminal() {
                 <div key={entry.id} className="mb-2">
                   {/* User message echo */}
                   <div className="text-xs sm:text-sm">
-                    <span style={{ color: colors.brand }} className="font-bold">&gt; </span>
+                    <span style={{ color: colors.text }} className="font-bold">❯ </span>
                     <span style={{ color: colors.text }}>{entry.input}</span>
                   </div>
                   {/* AI response */}
                   {entry.isStreaming && !entry.aiContent ? (
                     <Spinner />
                   ) : (
-                    <StreamingText content={entry.aiContent || ''} />
+                    <MarkdownOutput content={entry.aiContent || ''} />
                   )}
                   {entry.isStreaming && entry.aiContent && <Spinner />}
                 </div>
@@ -441,31 +519,60 @@ export function Terminal() {
 
             return null;
           })}
-        </div>
-      </div>
 
-      {/* Input area - fixed at bottom */}
-      <div className="flex-shrink-0 px-2 sm:px-4 pb-2 sm:pb-4">
-        <div className="max-w-[1100px] mx-auto">
-          {showSlashMenu && (
-            <SlashMenu
-              input={input}
-              selectedIndex={menuIndex}
-              onSelect={(cmd) => {
-                setInput(cmd);
-                setShowSlashMenu(false);
+          {/* Help selector — rendered live */}
+          {helpSelectorOpen && (
+            <Help
+              selectedIndex={helpSelectorIndex}
+              onSelect={(command) => {
+                setHelpSelectorOpen(false);
+                handleSubmit(command);
               }}
+              onCancel={() => setHelpSelectorOpen(false)}
             />
           )}
-          <InputBox
-            value={input}
-            onChange={handleInputChange}
-            onSubmit={handleSubmit}
-            onKeyDown={handleKeyDown}
-            focused={focused}
-            onFocus={() => setFocused(true)}
-            disabled={isAiLoading}
-          />
+
+          {/* Model selector — rendered live */}
+          {modelSelectorOpen && (
+            <Models
+              selectedIndex={modelSelectorIndex}
+              currentIndex={currentModelIndex}
+              onConfirm={(index) => {
+                setCurrentModelIndex(index);
+                setModelSelectorOpen(false);
+              }}
+              onCancel={() => setModelSelectorOpen(false)}
+            />
+          )}
+
+          {/* Input then slash menu below — hidden when help selector is open */}
+          {!helpSelectorOpen && (
+            <>
+              <InputBox
+                value={input}
+                onChange={handleInputChange}
+                onSubmit={handleSubmit}
+                onKeyDown={handleKeyDown}
+                focused={focused}
+                onFocus={() => setFocused(true)}
+                disabled={isAiLoading}
+              />
+              {showSlashMenu && (
+                <SlashMenu
+                  input={input}
+                  selectedIndex={menuIndex}
+                  onSelect={(cmd) => {
+                    setInput(cmd);
+                    setShowSlashMenu(false);
+                  }}
+                />
+              )}
+              {/* Hint */}
+              <div className="text-xs py-0.5 ml-2" style={{ color: colors.subtle }}>
+                ? for shortcuts
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

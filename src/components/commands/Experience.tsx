@@ -9,7 +9,7 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-export function ExperienceOutput({ compact }: { compact?: boolean }) {
+export function Experience() {
   const { work } = resume;
 
   return (
@@ -18,8 +18,8 @@ export function ExperienceOutput({ compact }: { compact?: boolean }) {
         <div key={i}>
           {/* Git log style commit header */}
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span style={{ color: '#F5A623' }}>●</span>
-            <span style={{ color: colors.success }} className="font-bold">{job.name}</span>
+            <span>●</span>
+            <span style={{ color: colors.helpBlue }} className="font-bold">{job.name}</span>
             <span style={{ color: colors.inactive }}>—</span>
             <span style={{ color: colors.text }} className="font-bold">{job.position}</span>
           </div>
@@ -32,16 +32,14 @@ export function ExperienceOutput({ compact }: { compact?: boolean }) {
           </div>
 
           {/* Highlights */}
-          {!compact && (
-            <div className="pl-4 mt-1 space-y-0.5">
-              {job.highlights.map((h, j) => (
-                <div key={j} className="flex gap-2">
-                  <span style={{ color: colors.inactive }}>▸</span>
-                  <span style={{ color: colors.subtle }}>{h}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="pl-4 mt-1 space-y-0.5">
+            {job.highlights.map((h, j) => (
+              <div key={j} className="flex gap-2">
+                <span style={{ color: colors.inactive }}>▸</span>
+                <span style={{ color: colors.subtle }}>{h}</span>
+              </div>
+            ))}
+          </div>
         </div>
       ))}
     </div>

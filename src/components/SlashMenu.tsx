@@ -11,33 +11,41 @@ interface SlashMenuProps {
 }
 
 export function SlashMenu({ input, selectedIndex, onSelect }: SlashMenuProps) {
-  const matches = filterCommands(input);
+  const allMatches = filterCommands(input);
+  const maxVisible = 5;
 
-  if (matches.length === 0) return null;
+  if (allMatches.length === 0) return null;
+
+  // Calculate visible window that follows the selection
+  let start = 0;
+  if (selectedIndex >= maxVisible) {
+    start = selectedIndex - maxVisible + 1;
+  }
+  if (start + maxVisible > allMatches.length) {
+    start = Math.max(0, allMatches.length - maxVisible);
+  }
+  const visibleMatches = allMatches.slice(start, start + maxVisible);
 
   return (
-    <div className="relative z-10">
-      <div
-        className="border rounded px-1 py-1 text-xs sm:text-sm max-h-48 overflow-y-auto"
-        style={{
-          borderColor: colors.promptBorder,
-          backgroundColor: colors.surface,
-        }}
-      >
-        {matches.map((cmd: CommandDefinition, i: number) => (
+    <div className="text-xs sm:text-sm py-1">
+      {visibleMatches.map((cmd: CommandDefinition, i: number) => {
+        const globalIndex = start + i;
+        return (
           <div
             key={cmd.name}
-            className="px-2 py-0.5 cursor-pointer flex gap-4"
+            className="py-0.5 cursor-pointer flex gap-2 pl-2"
             style={{
-              backgroundColor: i === selectedIndex ? 'rgba(87, 105, 247, 0.15)' : 'transparent',
+              color: globalIndex === selectedIndex ? colors.helpBlue : colors.subtle,
             }}
             onClick={() => onSelect(cmd.name)}
           >
-            <span style={{ color: colors.success, minWidth: '120px' }}>{cmd.name}</span>
-            <span style={{ color: colors.subtle }}>{cmd.description}</span>
+            <span style={{ color: globalIndex === selectedIndex ? colors.helpBlue : colors.subtle, minWidth: '120px', display: 'inline-block' }}>
+              {cmd.name}
+            </span>
+            <span style={{ color: colors.inactive }}>{cmd.description}</span>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }

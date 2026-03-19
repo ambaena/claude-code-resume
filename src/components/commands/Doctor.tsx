@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { colors } from '@/lib/colors';
+import { personalConfig } from '@/config/personal';
 
-const checks = [
-  { label: 'Checking Python skills', result: 'OK', color: colors.success },
-  { label: 'Checking SQL proficiency', result: 'EXCELLENT', color: colors.success },
-  { label: 'Checking AWS certifications', result: '6/6 PASSED', color: colors.success },
-  { label: 'Checking Terraform state', result: 'NO DRIFT', color: colors.success },
-  { label: 'Checking dbt models', result: 'ALL PASSING', color: colors.success },
-  { label: 'Checking Airflow DAGs', result: 'NO FAILURES', color: colors.success },
-  { label: 'Checking coffee levels', result: 'LOW ⚠', color: '#F5A623' },
-  { label: 'Checking work-life balance', result: 'NEEDS ATTENTION', color: colors.error },
-];
+const severityColors = {
+  success: colors.success,
+  warning: '#F5A623',
+  error: colors.error,
+} as const;
 
-export function DoctorOutput() {
+const checks = personalConfig.doctorChecks.map((c) => ({
+  ...c,
+  color: severityColors[c.severity],
+}));
+
+export function Doctor() {
   const [visibleCount, setVisibleCount] = useState(0);
 
   useEffect(() => {

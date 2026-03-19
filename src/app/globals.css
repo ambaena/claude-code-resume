@@ -1,3 +1,4 @@
+@import url('https://cdn.jsdelivr.net/npm/hack-font@3/build/web/hack.min.css');
 @import "tailwindcss";
 
 @theme {
@@ -8,12 +9,12 @@
   --color-prompt-border: #888888;
   --color-subtle: #AFAFAF;
   --color-inactive: #666666;
-  --color-bg: #1A1A2E;
-  --color-surface: #16162A;
+  --color-bg: #000000;
+  --color-surface: #0A0A0A;
   --color-text: #E8E8E8;
   --color-error: #FF6B6B;
 
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-mono: "Hack", ui-monospace, monospace;
 }
 
 html,
@@ -27,9 +28,6 @@ body {
   overflow: hidden;
 }
 
-#__next {
-  height: 100%;
-}
 
 @keyframes blink {
   0%, 100% { opacity: 1; }

@@ -1,284 +1,168 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { colors } from '@/lib/colors';
 import { siteConfig } from '@/config/site';
-import { resume } from '@/lib/resume-data';
+import { careerModels } from './commands/Models';
+import { personalConfig } from '@/config/personal';
 
-interface Segment {
-  text: string;
-  color?: string;
-  bold?: boolean;
+interface WelcomeScreenProps {
+  currentModelIndex?: number;
 }
 
-type Line = Segment[];
+const tips = personalConfig.welcomeTips;
 
-function clawdArt(): Line[] {
-  return [
-    [{ text: '        ▐▛███▜▌', color: colors.brand }],
-    [{ text: '       ▝▜█████▛▘', color: colors.brand }],
-    [{ text: '         ▘▘ ▝▝', color: colors.brand }],
-  ];
-}
+const recentActivity = personalConfig.recentActivity;
 
-function buildWelcomeLines(width: number): Line[] {
-  const isMobile = width < 768;
-  const boxWidth = isMobile ? Math.min(width - 4, 60) : Math.min(width - 4, 100);
-  const dividerCol = isMobile ? boxWidth : Math.floor(boxWidth * 0.53);
-  const rightStart = dividerCol + 1;
-  const rightWidth = boxWidth - rightStart;
-
-  const title = ` ${siteConfig.name} v${siteConfig.version} `;
-  const topBorderLeft = '─'.repeat(Math.max(0, Math.floor((boxWidth - title.length - 2) / 2)));
-  const topBorderRight = '─'.repeat(Math.max(0, boxWidth - topBorderLeft.length - title.length - 2));
-
-  const padRight = (segments: Segment[], targetLen: number): Segment[] => {
-    const textLen = segments.reduce((sum, s) => sum + s.text.length, 0);
-    const pad = Math.max(0, targetLen - textLen);
-    return [...segments, { text: ' '.repeat(pad) }];
-  };
-
-  const leftLine = (segs: Segment[]): Segment[] => padRight(segs, dividerCol);
-  const rightLine = (segs: Segment[]): Segment[] => padRight(segs, rightWidth);
-
-  const emptyLeft = (): Segment[] => leftLine([{ text: '' }]);
-  const emptyRight = (): Segment[] => rightLine([{ text: '' }]);
-
-  const recentCerts = resume.certificates.slice(-2);
-
-  if (isMobile) {
-    // Single panel stacked layout
-    const lines: Line[] = [];
-
-    // Top border
-    lines.push([
-      { text: '╭─', color: colors.brand },
-      { text: topBorderLeft, color: colors.brand },
-      { text: title, color: colors.brand, bold: true },
-      { text: topBorderRight, color: colors.brand },
-      { text: '─╮', color: colors.brand },
-    ]);
-
-    // Welcome text
-    const welcomeRow = padRight([{ text: '  Welcome, stranger!', bold: true }], boxWidth);
-    lines.push([{ text: '│', color: colors.brand }, ...welcomeRow, { text: '│', color: colors.brand }]);
-
-    lines.push([{ text: '│', color: colors.brand }, ...padRight([{ text: '' }], boxWidth), { text: '│', color: colors.brand }]);
-
-    // Clawd
-    for (const art of clawdArt()) {
-      const row = padRight(art, boxWidth);
-      lines.push([{ text: '│', color: colors.brand }, ...row, { text: '│', color: colors.brand }]);
-    }
-
-    lines.push([{ text: '│', color: colors.brand }, ...padRight([{ text: '' }], boxWidth), { text: '│', color: colors.brand }]);
-
-    // Model info
-    const modelLine = padRight([
-      { text: `  ${siteConfig.modelName}`, color: colors.text, bold: true },
-      { text: ` · `, color: colors.inactive },
-      { text: siteConfig.modelTier, color: colors.text },
-      { text: ' ·', color: colors.inactive },
-    ], boxWidth);
-    lines.push([{ text: '│', color: colors.brand }, ...modelLine, { text: '│', color: colors.brand }]);
-
-    const emailLine = padRight([
-      { text: `  ${siteConfig.email}'s Portfolio`, color: colors.subtle },
-    ], boxWidth);
-    lines.push([{ text: '│', color: colors.brand }, ...emailLine, { text: '│', color: colors.brand }]);
-
-    const pathLine = padRight([
-      { text: `  ${siteConfig.path}`, color: colors.inactive },
-    ], boxWidth);
-    lines.push([{ text: '│', color: colors.brand }, ...pathLine, { text: '│', color: colors.brand }]);
-
-    lines.push([{ text: '│', color: colors.brand }, ...padRight([{ text: '' }], boxWidth), { text: '│', color: colors.brand }]);
-
-    // Separator
-    lines.push([
-      { text: '│', color: colors.brand },
-      { text: ' ' + '─'.repeat(boxWidth - 2) + ' ', color: colors.inactive },
-      { text: '│', color: colors.brand },
-    ]);
-
-    lines.push([{ text: '│', color: colors.brand }, ...padRight([{ text: '' }], boxWidth), { text: '│', color: colors.brand }]);
-
-    // Tips
-    const tips = [
-      { cmd: '/help', desc: 'List all available commands' },
-      { cmd: '/experience', desc: 'Browse my work history' },
-      { cmd: '/skills', desc: 'See my technical toolkit' },
-      { cmd: '/certs', desc: 'View my certifications' },
-    ];
-
-    const tipsHeader = padRight([{ text: '  Tips for getting started', color: colors.subtle, bold: true }], boxWidth);
-    lines.push([{ text: '│', color: colors.brand }, ...tipsHeader, { text: '│', color: colors.brand }]);
-
-    lines.push([{ text: '│', color: colors.brand }, ...padRight([{ text: '' }], boxWidth), { text: '│', color: colors.brand }]);
-
-    for (const tip of tips) {
-      const tipLine = padRight([
-        { text: `   ${tip.cmd.padEnd(14)}`, color: colors.success },
-        { text: tip.desc, color: colors.subtle },
-      ], boxWidth);
-      lines.push([{ text: '│', color: colors.brand }, ...tipLine, { text: '│', color: colors.brand }]);
-    }
-
-    lines.push([{ text: '│', color: colors.brand }, ...padRight([{ text: '' }], boxWidth), { text: '│', color: colors.brand }]);
-
-    const chatTip = padRight([
-      { text: '   Or just type anything to chat!', color: colors.subtle },
-    ], boxWidth);
-    lines.push([{ text: '│', color: colors.brand }, ...chatTip, { text: '│', color: colors.brand }]);
-
-    // Bottom border
-    lines.push([
-      { text: '╰', color: colors.brand },
-      { text: '─'.repeat(boxWidth), color: colors.brand },
-      { text: '╯', color: colors.brand },
-    ]);
-
-    return lines;
-  }
-
-  // Desktop: two panels
-  const makeDualLine = (left: Segment[], right: Segment[]): Line => {
-    return [
-      { text: '│', color: colors.brand },
-      ...leftLine(left),
-      { text: '│', color: colors.inactive },
-      ...rightLine(right),
-      { text: '│', color: colors.brand },
-    ];
-  };
-
-  const lines: Line[] = [];
-
-  // Top border
-  lines.push([
-    { text: '╭─', color: colors.brand },
-    { text: topBorderLeft, color: colors.brand },
-    { text: title, color: colors.brand, bold: true },
-    { text: topBorderRight, color: colors.brand },
-    { text: '─╮', color: colors.brand },
-  ]);
-
-  // Row 1: empty | Tips header
-  lines.push(makeDualLine(
-    [],
-    [{ text: ' Tips for getting started', color: colors.subtle, bold: true }],
-  ));
-
-  // Row 2: Welcome | empty
-  lines.push(makeDualLine(
-    [{ text: '         Welcome, stranger!', bold: true }],
-    [],
-  ));
-
-  // Row 3: empty | /help
-  lines.push(makeDualLine(
-    [],
-    [{ text: '  /help', color: colors.success }, { text: '       List all available commands', color: colors.subtle }],
-  ));
-
-  // Row 4: empty | /experience
-  lines.push(makeDualLine(
-    [],
-    [{ text: '  /experience', color: colors.success }, { text: ' Browse my work history', color: colors.subtle }],
-  ));
-
-  // Row 5: Clawd line 1 | /skills
-  lines.push(makeDualLine(
-    clawdArt()[0],
-    [{ text: '  /skills', color: colors.success }, { text: '     See my technical toolkit', color: colors.subtle }],
-  ));
-
-  // Row 6: Clawd line 2 | /certs
-  lines.push(makeDualLine(
-    clawdArt()[1],
-    [{ text: '  /certs', color: colors.success }, { text: '      View my 11 certifications', color: colors.subtle }],
-  ));
-
-  // Row 7: Clawd line 3 | Chat tip
-  lines.push(makeDualLine(
-    clawdArt()[2],
-    [{ text: '  Or just type anything to chat with my AI clone!', color: colors.subtle }],
-  ));
-
-  // Row 8: empty | separator
-  lines.push(makeDualLine(
-    [],
-    [{ text: ' ' + '─'.repeat(Math.max(0, rightWidth - 2)), color: colors.inactive }],
-  ));
-
-  // Row 9: Model info | Recent certs header
-  lines.push(makeDualLine(
-    [
-      { text: ' ' },
-      { text: siteConfig.modelName, color: colors.text, bold: true },
-      { text: ' · ', color: colors.inactive },
-      { text: siteConfig.modelTier, color: colors.text },
-      { text: ' ·', color: colors.inactive },
-    ],
-    [{ text: ' Recent certifications', color: colors.subtle, bold: true }],
-  ));
-
-  // Row 10: Email | Cert 1
-  lines.push(makeDualLine(
-    [{ text: ` ${siteConfig.email}'s Portfolio`, color: colors.subtle }],
-    [{ text: `   ${recentCerts[0]?.name ?? ''}`, color: colors.text }],
-  ));
-
-  // Row 11: Path | Cert 2
-  lines.push(makeDualLine(
-    [{ text: `         ${siteConfig.path}`, color: colors.inactive }],
-    [{ text: `   ${recentCerts[1]?.name ?? ''}`, color: colors.text }],
-  ));
-
-  // Bottom border
-  lines.push([
-    { text: '╰', color: colors.brand },
-    { text: '─'.repeat(boxWidth), color: colors.brand },
-    { text: '╯', color: colors.brand },
-  ]);
-
-  return lines;
-}
-
-function SegmentSpan({ segment }: { segment: Segment }) {
+function ClawdArt() {
   return (
-    <span
-      style={{
-        color: segment.color ?? colors.text,
-        fontWeight: segment.bold ? 'bold' : undefined,
-      }}
-    >
-      {segment.text}
-    </span>
+    <pre className="text-xs sm:text-sm leading-tight" style={{ color: colors.brand }}>
+      {`  ▐▛███▜▌\n ▝▜█████▛▘\n   ▘▘ ▝▝`}
+    </pre>
   );
 }
 
-export function WelcomeScreen() {
-  const [width, setWidth] = useState(1024);
-
-  useEffect(() => {
-    const update = () => setWidth(window.innerWidth);
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
-
-  const lines = buildWelcomeLines(width);
+export function WelcomeScreen({ currentModelIndex = 0 }: WelcomeScreenProps) {
+  const model = careerModels[currentModelIndex];
 
   return (
-    <pre className="text-xs sm:text-sm leading-relaxed select-none whitespace-pre overflow-x-auto">
-      {lines.map((line, i) => (
-        <div key={i}>
-          {line.map((seg, j) => (
-            <SegmentSpan key={j} segment={seg} />
-          ))}
+    <div className="text-xs sm:text-sm select-none mb-4">
+      {/* Path display */}
+      <div className="mb-1" style={{ color: colors.inactive }}>
+        {siteConfig.path}
+      </div>
+      <div className="mb-3">
+        <span style={{ color: colors.text }} className="font-bold">❯ </span>
+        <span style={{ color: colors.text }}>claude</span>
+      </div>
+
+      {/* Top border: ╭─── Claude Resume v2.1.63 ───...─╮ */}
+      <div className="flex whitespace-pre overflow-hidden" style={{ color: colors.brand }}>
+        <span>╭───</span>
+        <span>{` ${siteConfig.name} `}</span>
+        <span className="text-white">{`v${siteConfig.version} `}</span>
+        <span className="flex-1 overflow-hidden">{'─'.repeat(200)}</span>
+        <span>╮</span>
+      </div>
+
+      {/* Content with text-aligned side borders */}
+      <div className="flex" style={{ color: colors.brand }}>
+        {/* Left border — 1px line centered in 1ch, aligns with ╭/╰ */}
+        <div
+          className="w-[1ch] shrink-0"
+          style={{
+            backgroundImage: `linear-gradient(${colors.brand}, ${colors.brand})`,
+            backgroundSize: '1px 100%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row">
+            {/* Left panel */}
+            <div className="flex-1 p-3 flex flex-col items-center justify-center gap-2">
+              <div className="font-bold" style={{ color: colors.text }}>
+                Welcome, stranger!
+              </div>
+
+              <ClawdArt />
+
+              <div className="text-center space-y-0.5">
+                <div>
+                  <span style={{ color: colors.text }} className="font-bold">
+                    {model?.name ?? siteConfig.modelName}
+                  </span>
+                  <span style={{ color: colors.inactive }}> · </span>
+                  <span style={{ color: colors.text }}>
+                    {model?.subtitle ?? siteConfig.modelTier}
+                  </span>
+                  <span style={{ color: colors.inactive }}> ·</span>
+                </div>
+                <a
+                  href={siteConfig.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: colors.subtle, textDecoration: 'none' }}
+                >
+                  {siteConfig.url.replace(/^https?:\/\//, '')}
+                </a>
+                <div style={{ color: colors.inactive }}>
+                  {siteConfig.path}
+                </div>
+              </div>
+            </div>
+
+            {/* Right panel */}
+            <div
+              className="hidden sm:block flex-1 p-3"
+              style={{ borderLeft: `1px solid ${colors.inactive}` }}
+            >
+              <div className="font-bold mb-2" style={{ color: colors.brand }}>
+                Tips for getting started
+              </div>
+              <div className="space-y-0.5">
+                {tips.map((tip) => (
+                  <div key={tip.cmd} className="flex gap-2">
+                    <span style={{ color: colors.helpBlue, minWidth: '110px', display: 'inline-block' }}>
+                      {tip.cmd}
+                    </span>
+                    <span style={{ color: colors.subtle }}>{tip.desc}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2" style={{ color: colors.subtle }}>
+                Or just type anything to chat with my AI clone!
+              </div>
+              <div className="my-2 h-px" style={{ backgroundColor: colors.inactive }} />
+              <div className="font-bold mb-1" style={{ color: colors.brand }}>
+                Recent activity
+              </div>
+              {recentActivity.map((item) => (
+                <div key={item} className="pl-2" style={{ color: colors.text }}>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile tips */}
+          <div className="sm:hidden p-3" style={{ borderTop: `1px solid ${colors.inactive}` }}>
+            <div className="font-bold mb-2" style={{ color: colors.subtle }}>
+              Tips for getting started
+            </div>
+            <div className="space-y-0.5">
+              {tips.map((tip) => (
+                <div key={tip.cmd} className="flex gap-2">
+                  <span style={{ color: colors.success, minWidth: '100px', display: 'inline-block' }}>
+                    {tip.cmd}
+                  </span>
+                  <span style={{ color: colors.subtle }}>{tip.desc}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2" style={{ color: colors.subtle }}>
+              Or just type anything to chat!
+            </div>
+          </div>
         </div>
-      ))}
-    </pre>
+        {/* Right border — 1px line centered in 1ch, aligns with ╮/╯ */}
+        <div
+          className="w-[1ch] shrink-0"
+          style={{
+            backgroundImage: `linear-gradient(${colors.brand}, ${colors.brand})`,
+            backgroundSize: '1px 100%',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        />
+      </div>
+
+      {/* Bottom border: ╰─────...─╯ */}
+      <div className="flex whitespace-pre overflow-hidden" style={{ color: colors.brand }}>
+        <span>╰</span>
+        <span className="flex-1 overflow-hidden">{'─'.repeat(200)}</span>
+        <span>╯</span>
+      </div>
+    </div>
   );
 }

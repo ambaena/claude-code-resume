@@ -7,7 +7,7 @@ import { siteConfig } from '@/config/site';
 // Exclude /help itself from the navigable list
 export const helpCommands = commands.filter((cmd) => cmd.name !== '/help');
 
-interface HelpOutputProps {
+interface HelpProps {
   selectedIndex: number;
   onSelect: (command: string) => void;
   onCancel: () => void;
@@ -15,7 +15,7 @@ interface HelpOutputProps {
 
 const MAX_VISIBLE = 6;
 
-export function HelpOutput({ selectedIndex, onSelect, onCancel }: HelpOutputProps) {
+export function Help({ selectedIndex, onSelect, onCancel }: HelpProps) {
   // Calculate visible window that follows the selection
   let start = 0;
   if (selectedIndex >= MAX_VISIBLE) {
@@ -73,7 +73,7 @@ export function HelpOutput({ selectedIndex, onSelect, onCancel }: HelpOutputProp
 
       {/* Footer — always visible */}
       <div className="pl-2 mt-3" style={{ color: colors.subtle }}>
-        For more help, hire and ask that guy:{' '}
+        For more help, visit and hire that guy:{' '}
         <a
           href={siteConfig.url}
           target="_blank"

@@ -1,26 +1,25 @@
 import type { Metadata } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { siteConfig } from '@/config/site';
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-  display: 'swap',
-});
+const ogTitle = `${siteConfig.name} v${siteConfig.version}`;
 
 export const metadata: Metadata = {
-  title: `${siteConfig.name} — ${siteConfig.description}`,
+  title: `${siteConfig.name} - ${siteConfig.author}`,
   description: siteConfig.description,
+  icons: {
+    icon: '/favicon.png',
+  },
   openGraph: {
-    title: `${siteConfig.name} v${siteConfig.version}`,
+    title: ogTitle,
     description: siteConfig.description,
     type: 'website',
     url: siteConfig.url,
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${siteConfig.name} v${siteConfig.version}`,
+    title: ogTitle,
     description: siteConfig.description,
   },
 };
@@ -31,9 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={jetbrainsMono.variable}>
+    <html lang="en">
       <body className="bg-bg text-text font-mono antialiased h-screen overflow-hidden">
         {children}
+        <Analytics />
       </body>
     </html>
   );

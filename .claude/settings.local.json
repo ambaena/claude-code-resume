@@ -19,7 +19,12 @@
       "WebFetch(domain:ai.google.dev)",
       "Bash(pnpm install:*)",
       "Bash(pnpm build:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(wc -c /Users/abaena/workspace/github/claude-resume/resume.json)",
+      "Bash(npx tsx:*)",
+      "Bash(pnpm add:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(tsx:*)"
     ]
   },
   "autoApprove": true

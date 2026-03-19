@@ -9,20 +9,19 @@ export const commands: CommandDefinition[] = [
   { name: '/education', aliases: ['/edu'], description: 'Education background', category: 'content' },
   { name: '/certs', aliases: ['/certifications'], description: 'Professional certifications', category: 'content' },
   { name: '/contact', aliases: ['/links', '/socials'], description: 'Contact info & social links', category: 'content' },
-  { name: '/models', aliases: ['/roles'], description: 'Career roles as "models"', category: 'content' },
+  { name: '/model', aliases: ['/models', '/roles'], description: 'Career roles as "models"', category: 'content' },
   { name: '/languages', aliases: ['/lang'], description: 'Languages spoken', category: 'content' },
-  { name: '/download', aliases: ['/pdf', '/resume'], description: 'Download PDF resume', category: 'content' },
+  { name: '/resume', aliases: ['/pdf', '/download'], description: 'View resume info', category: 'content' },
 
   // System commands
   { name: '/clear', aliases: [], description: 'Clear terminal', category: 'system' },
   { name: '/status', aliases: [], description: 'Portfolio status & stats', category: 'system' },
   { name: '/version', aliases: [], description: 'Version info', category: 'system' },
-  { name: '/theme', aliases: [], description: 'Toggle light/dark theme', category: 'system' },
-  { name: '/compact', aliases: [], description: 'Toggle compact mode', category: 'system' },
 
   // Fun commands
   { name: '/cost', aliases: [], description: 'Cost analysis (humorous)', category: 'fun' },
   { name: '/doctor', aliases: [], description: 'Run diagnostics', category: 'fun' },
+  { name: '/usage', aliases: [], description: 'Session usage stats', category: 'fun' },
   { name: '/init', aliases: [], description: 'Initialize portfolio', category: 'fun' },
 ];
 

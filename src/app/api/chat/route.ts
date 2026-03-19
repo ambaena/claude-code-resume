@@ -8,8 +8,8 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    const result = streamText({
-      model: google('gemini-2.5-flash-lite-preview-06-17'),
+    const result = await streamText({
+      model: google('gemini-2.5-flash-lite'),
       system: SYSTEM_PROMPT,
       messages,
       maxTokens: 300,
